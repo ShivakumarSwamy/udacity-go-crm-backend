@@ -5,7 +5,7 @@ A Go solution based Customer Relationship Management(CRM) Backend service to han
 - Install Go 1.21 via its [website](https://go.dev/learn/) or via [goenv](https://github.com/go-nv/goenv)
 
 ## Run Locally
-Run the below command to run the application server
+Run the below command to run the application server in the project directory
 ```shell
 go run main.go
 ```
