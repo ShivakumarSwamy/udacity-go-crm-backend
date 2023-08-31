@@ -167,12 +167,16 @@ func addCustomersHandlerMapping(router *mux.Router) {
 	router.HandleFunc("/customers/{id}", deleteCustomer).Methods("DELETE")
 }
 
+func index(writer http.ResponseWriter, request *http.Request) {
+	http.ServeFile(writer, request, "./static/index.html")
+}
+
 func main() {
 	addInitialCustomerData()
 
 	router := mux.NewRouter()
 	addCustomersHandlerMapping(router)
-
+	router.HandleFunc("/", index)
 	fmt.Println("Server is starting at port 3000...")
 	err := http.ListenAndServe(":3000", router)
 
