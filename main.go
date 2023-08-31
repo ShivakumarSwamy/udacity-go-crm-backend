@@ -88,7 +88,7 @@ func getCustomers(writer http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(writer).Encode(getAllValuesOfCustomerMap())
 }
 
-func createCustomer(writer http.ResponseWriter, request *http.Request) {
+func addCustomer(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusCreated)
 
@@ -138,7 +138,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/customers/{id}", getCustomer).Methods("GET")
 	router.HandleFunc("/customers", getCustomers).Methods("GET")
-	router.HandleFunc("/customers", createCustomer).Methods("POST")
+	router.HandleFunc("/customers", addCustomer).Methods("POST")
 	router.HandleFunc("/customers/{id}", updateCustomer).Methods("PUT")
 	router.HandleFunc("/customers/{id}", deleteCustomer).Methods("DELETE")
 
