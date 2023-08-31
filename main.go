@@ -49,6 +49,8 @@ func addInitialCustomerData() {
 	}
 }
 
+// Utility methods
+
 func isCustomerIdExist(customerId string) bool {
 	_, ok := customerDatabase[customerId]
 	if ok {
@@ -57,18 +59,28 @@ func isCustomerIdExist(customerId string) bool {
 	return false
 }
 
-func getCustomer(writer http.ResponseWriter, request *http.Request) {
+func setJsonContentType(writer http.ResponseWriter) {
 	writer.Header().Set("Content-Type", "application/json")
-	vars := mux.Vars(request)
-	customerId := vars["id"]
+}
 
-	if isCustomerIdExist(customerId) {
-		writer.WriteHeader(http.StatusOK)
-		json.NewEncoder(writer).Encode(customerDatabase[customerId])
-	} else {
-		writer.WriteHeader(http.StatusNotFound)
-	}
+func setStatus200Ok(writer http.ResponseWriter) {
+	writer.WriteHeader(http.StatusOK)
+}
 
+func setStatus201Created(writer http.ResponseWriter) {
+	writer.WriteHeader(http.StatusCreated)
+}
+
+func setStatus204NoContent(writer http.ResponseWriter) {
+	writer.WriteHeader(http.StatusNoContent)
+}
+
+func setStatus404NotFound(writer http.ResponseWriter) {
+	writer.WriteHeader(http.StatusNotFound)
+}
+
+func writeJsonBody(writer http.ResponseWriter, body any) error {
+	return json.NewEncoder(writer).Encode(body)
 }
 
 func getAllValuesOfCustomerMap() []Customer {
@@ -82,15 +94,30 @@ func getAllValuesOfCustomerMap() []Customer {
 	return allCustomer
 }
 
+// functions mapped with routes
+
+func getCustomer(writer http.ResponseWriter, request *http.Request) {
+	customerId := mux.Vars(request)["id"]
+
+	if isCustomerIdExist(customerId) {
+		setJsonContentType(writer)
+		setStatus200Ok(writer)
+		writeJsonBody(writer, customerDatabase[customerId])
+	} else {
+		setStatus404NotFound(writer)
+		writeJsonBody(writer, "Unable to find the customer")
+	}
+}
+
 func getCustomers(writer http.ResponseWriter, request *http.Request) {
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
-	json.NewEncoder(writer).Encode(getAllValuesOfCustomerMap())
+	setJsonContentType(writer)
+	setStatus200Ok(writer)
+	writeJsonBody(writer, getAllValuesOfCustomerMap())
 }
 
 func addCustomer(writer http.ResponseWriter, request *http.Request) {
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusCreated)
+	setJsonContentType(writer)
+	setStatus201Created(writer)
 
 	var customerNewEntry Customer
 	requestBody, _ := io.ReadAll(request.Body)
@@ -99,48 +126,52 @@ func addCustomer(writer http.ResponseWriter, request *http.Request) {
 	newCustomerId := uuid.New().String()
 	customerNewEntry.Id = newCustomerId
 	customerDatabase[newCustomerId] = customerNewEntry
-	json.NewEncoder(writer).Encode(customerDatabase[newCustomerId])
+	writeJsonBody(writer, customerDatabase[newCustomerId])
 }
 
 func updateCustomer(writer http.ResponseWriter, request *http.Request) {
-	writer.Header().Set("Content-Type", "application/json")
-
 	var updateCustomerEntry Customer
 	requestBody, _ := io.ReadAll(request.Body)
 	json.Unmarshal(requestBody, &updateCustomerEntry)
 
-	vars := mux.Vars(request)
-	customerId := vars["id"]
-
+	customerId := mux.Vars(request)["id"]
 	if isCustomerIdExist(customerId) {
+		setJsonContentType(writer)
+		setStatus200Ok(writer)
 		customerDatabase[customerId] = updateCustomerEntry
-		writer.WriteHeader(http.StatusOK)
-		json.NewEncoder(writer).Encode(customerDatabase[customerId])
+		writeJsonBody(writer, customerDatabase[customerId])
 	} else {
-		writer.WriteHeader(http.StatusNotFound)
+		setStatus404NotFound(writer)
+		writeJsonBody(writer, "Unable to find the customer")
 	}
 }
 
 func deleteCustomer(writer http.ResponseWriter, request *http.Request) {
-	vars := mux.Vars(request)
-	customerId := vars["id"]
+	customerId := mux.Vars(request)["id"]
 	if isCustomerIdExist(customerId) {
 		delete(customerDatabase, customerId)
-		writer.WriteHeader(http.StatusNoContent)
+		setStatus204NoContent(writer)
 	} else {
-		writer.WriteHeader(http.StatusNotFound)
+		setStatus404NotFound(writer)
+		writeJsonBody(writer, "Unable to find the customer")
 	}
+}
+
+// path mappings
+
+func addCustomersHandlerMapping(router *mux.Router) {
+	router.HandleFunc("/customers/{id}", getCustomer).Methods("GET")
+	router.HandleFunc("/customers", getCustomers).Methods("GET")
+	router.HandleFunc("/customers", addCustomer).Methods("POST")
+	router.HandleFunc("/customers/{id}", updateCustomer).Methods("PUT")
+	router.HandleFunc("/customers/{id}", deleteCustomer).Methods("DELETE")
 }
 
 func main() {
 	addInitialCustomerData()
 
 	router := mux.NewRouter()
-	router.HandleFunc("/customers/{id}", getCustomer).Methods("GET")
-	router.HandleFunc("/customers", getCustomers).Methods("GET")
-	router.HandleFunc("/customers", addCustomer).Methods("POST")
-	router.HandleFunc("/customers/{id}", updateCustomer).Methods("PUT")
-	router.HandleFunc("/customers/{id}", deleteCustomer).Methods("DELETE")
+	addCustomersHandlerMapping(router)
 
 	fmt.Println("Server is starting at port 3000...")
 	err := http.ListenAndServe(":3000", router)
