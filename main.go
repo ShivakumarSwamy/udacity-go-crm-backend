@@ -49,11 +49,26 @@ func addInitialCustomerData() {
 	}
 }
 
+func isCustomerIdExist(customerId string) bool {
+	_, ok := customerDatabase[customerId]
+	if ok {
+		return true
+	}
+	return false
+}
+
 func getCustomer(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
 	vars := mux.Vars(request)
-	json.NewEncoder(writer).Encode(customerDatabase[vars["id"]])
+	customerId := vars["id"]
+
+	if isCustomerIdExist(customerId) {
+		writer.WriteHeader(http.StatusOK)
+		json.NewEncoder(writer).Encode(customerDatabase[customerId])
+	} else {
+		writer.WriteHeader(http.StatusNotFound)
+	}
+
 }
 
 func getAllValuesOfCustomerMap() []Customer {
@@ -89,21 +104,32 @@ func createCustomer(writer http.ResponseWriter, request *http.Request) {
 
 func updateCustomer(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(http.StatusOK)
 
 	var updateCustomerEntry Customer
 	requestBody, _ := io.ReadAll(request.Body)
 	json.Unmarshal(requestBody, &updateCustomerEntry)
 
 	vars := mux.Vars(request)
-	customerDatabase[vars["id"]] = updateCustomerEntry
-	json.NewEncoder(writer).Encode(customerDatabase[vars["id"]])
+	customerId := vars["id"]
+
+	if isCustomerIdExist(customerId) {
+		customerDatabase[customerId] = updateCustomerEntry
+		writer.WriteHeader(http.StatusOK)
+		json.NewEncoder(writer).Encode(customerDatabase[customerId])
+	} else {
+		writer.WriteHeader(http.StatusNotFound)
+	}
 }
 
 func deleteCustomer(writer http.ResponseWriter, request *http.Request) {
-	writer.WriteHeader(http.StatusNoContent)
 	vars := mux.Vars(request)
-	delete(customerDatabase, vars["id"])
+	customerId := vars["id"]
+	if isCustomerIdExist(customerId) {
+		delete(customerDatabase, customerId)
+		writer.WriteHeader(http.StatusNoContent)
+	} else {
+		writer.WriteHeader(http.StatusNotFound)
+	}
 }
 
 func main() {
