@@ -117,5 +117,9 @@ func main() {
 	router.HandleFunc("/customers/{id}", deleteCustomer).Methods("DELETE")
 
 	fmt.Println("Server is starting at port 3000...")
-	http.ListenAndServe(":3000", router)
+	err := http.ListenAndServe(":3000", router)
+
+	if err != nil {
+		fmt.Println("Server unable to start due to", err)
+	}
 }
